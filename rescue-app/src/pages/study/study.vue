@@ -1,0 +1,157 @@
+<template>
+  <view>
+    <view class="filter">
+      <picker :range="[1,2,3,4,5]" @change="onLevelChange">
+        <view class="filter-item">{{ level }}级 ▾</view>
+      </picker>
+      <picker :range="typeList" range-key="label" @change="onTypeChange">
+        <view class="filter-item">{{ typeLabel }} ▾</view>
+      </picker>
+    </view>
+
+    <view class="card" v-if="current">
+      <view class="q-tag">{{ typeText(current.questionType) }} · {{ current.level }}级 · {{ current.chapter || '未分章' }}</view>
+      <text class="q-content">{{ current.content }}</text>
+
+      <view v-if="current.questionType !== 4 && options.length" class="options">
+        <view
+          v-for="(opt, idx) in options"
+          :key="idx"
+          class="option"
+          :class="{ selected: selected === opt }"
+          @click="selected = opt"
+        >{{ opt }}</view>
+      </view>
+      <input v-else v-model="selected" class="answer-input" placeholder="请输入你的答案" />
+
+      <button class="check-btn" @click="showAnswer">显示答案</button>
+
+      <view v-if="shown" class="result">
+        <text class="answer-text">正确答案：{{ current.answer }}</text>
+        <text class="analysis" v-if="current.analysis">解析：{{ current.analysis }}</text>
+      </view>
+    </view>
+
+    <view v-if="!current && !loading" class="empty">该条件下暂无题目</view>
+
+    <view v-if="questions.length" class="nav-row">
+      <button class="nav-btn" @click="prev">上一题</button>
+      <text class="nav-count">{{ index + 1 }} / {{ questions.length }}</text>
+      <button class="nav-btn" @click="next">下一题</button>
+    </view>
+  </view>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
+import { getQuestionPage } from '@/api'
+
+const level = ref(1)
+const typeList = [
+  { label: '全部题型', value: 0 },
+  { label: '单选', value: 1 },
+  { label: '多选', value: 2 },
+  { label: '判断', value: 3 },
+  { label: '简答', value: 4 }
+]
+const type = ref(0)
+const questions = ref([])
+const index = ref(0)
+const loading = ref(false)
+const selected = ref('')
+const shown = ref(false)
+
+const typeLabel = computed(() => typeList.find(t => t.value === type.value)?.label || '全部题型')
+const current = computed(() => questions.value[index.value] || null)
+const options = computed(() => {
+  if (!current.value || !current.value.options) return []
+  try {
+    const arr = JSON.parse(current.value.options)
+    return Array.isArray(arr) ? arr : []
+  } catch (e) {
+    return []
+  }
+})
+
+const typeText = (t) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答' }[t] || t)
+
+const load = async () => {
+  loading.value = true
+  try {
+    const params = { page: 1, size: 50, level: level.value }
+    if (type.value) params.questionType = type.value
+    const res = await getQuestionPage(params)
+    questions.value = res.data.records
+    index.value = 0
+    selected.value = ''
+    shown.value = false
+  } finally {
+    loading.value = false
+  }
+}
+
+const onLevelChange = (e) => {
+  level.value = Number(e.detail.value) + 1
+  load()
+}
+
+const onTypeChange = (e) => {
+  type.value = typeList[Number(e.detail.value)].value
+  load()
+}
+
+const showAnswer = () => {
+  shown.value = true
+}
+
+const prev = () => {
+  if (index.value > 0) {
+    index.value--
+    selected.value = ''
+    shown.value = false
+  }
+}
+
+const next = () => {
+  if (index.value < questions.value.length - 1) {
+    index.value++
+    selected.value = ''
+    shown.value = false
+  }
+}
+
+onShow(() => {
+  const user = uni.getStorageSync('user')
+  if (user && user.level) level.value = user.level
+  load()
+})
+</script>
+
+<style scoped>
+.filter { display: flex; background: #fff; padding: 20rpx; }
+.filter-item { padding: 12rpx 32rpx; background: #F5F7FA; border-radius: 30rpx; font-size: 28rpx; color: #666; margin-right: 20rpx; }
+.q-tag { font-size: 22rpx; color: #005A9C; background: #cce2ef; padding: 4rpx 16rpx; border-radius: 20rpx; display: inline-block; }
+.q-content { font-size: 32rpx; color: #333; line-height: 1.6; margin-top: 20rpx; display: block; }
+.options { margin-top: 24rpx; }
+.option {
+  padding: 24rpx;
+  border: 2rpx solid #eee;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+  font-size: 28rpx;
+  color: #333;
+}
+.option.selected { border-color: #005A9C; background: #cce2ef; }
+.answer-input { background: #F5F7FA; border-radius: 12rpx; padding: 20rpx; margin-top: 20rpx; font-size: 28rpx; }
+.check-btn { background: #005A9C; color: #fff; border-radius: 12rpx; margin-top: 30rpx; }
+.check-btn::after { border: none; }
+.result { margin-top: 20rpx; }
+.answer-text { font-size: 28rpx; color: #09B865; display: block; }
+.analysis { font-size: 26rpx; color: #666; margin-top: 8rpx; display: block; line-height: 1.6; }
+.nav-row { display: flex; align-items: center; justify-content: space-between; padding: 20rpx 40rpx; }
+.nav-btn { background: #fff; color: #005A9C; border-radius: 30rpx; font-size: 26rpx; padding: 0 40rpx; }
+.nav-btn::after { border: none; }
+.nav-count { font-size: 26rpx; color: #666; }
+.empty { text-align: center; color: #999; padding: 100rpx 0; font-size: 28rpx; }
+</style>

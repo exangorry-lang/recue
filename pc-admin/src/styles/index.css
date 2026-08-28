@@ -1,0 +1,68 @@
+/* 上海救助基地 品牌视觉规范（方案 8.1） */
+:root {
+  /* 主色：救助深蓝 */
+  --sh-primary: #005A9C;
+  --sh-primary-grad: #0072BD;
+  /* 文字 */
+  --sh-text-main: #333333;
+  --sh-text-sub: #666666;
+  /* 语义色 */
+  --sh-success: #09B865;
+  --sh-warning: #FF7D00;
+  --sh-danger: #F53F3F;
+  --sh-disabled: #CCCCCC;
+  /* 底色 */
+  --sh-page-bg: #F5F7FA;
+  --sh-card-bg: #FFFFFF;
+
+  /* Element Plus 主题色覆盖 */
+  --el-color-primary: #005A9C;
+  --el-color-primary-light-3: #337ab0;
+  --el-color-primary-light-5: #669dc4;
+  --el-color-primary-light-7: #99c0d8;
+  --el-color-primary-light-8: #b3d1e4;
+  --el-color-primary-light-9: #cce2ef;
+  --el-color-primary-dark-2: #00487d;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+  color: var(--sh-text-main);
+  background: var(--sh-page-bg);
+}
+
+/* 极简公务卡片 */
+.card {
+  background: var(--sh-card-bg);
+  border-radius: 6px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--sh-text-main);
+  margin-bottom: 16px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-copyright {
+  text-align: center;
+  color: var(--sh-text-sub);
+  font-size: 12px;
+  padding: 12px 0;
+}

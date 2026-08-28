@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.shrescue</groupId>
+        <artifactId>rescue-backend</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>rescue-system</artifactId>
+    <name>rescue-system</name>
+    <description>系统模块：用户、角色、部门、日志与登录鉴权</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.shrescue</groupId>
+            <artifactId>rescue-framework</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
+</project>

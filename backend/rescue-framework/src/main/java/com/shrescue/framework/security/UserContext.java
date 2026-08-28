@@ -1,0 +1,39 @@
+package com.shrescue.framework.security;
+
+/**
+ * 当前登录用户上下文（ThreadLocal）
+ */
+public final class UserContext {
+
+    private static final ThreadLocal<LoginUser> HOLDER = new ThreadLocal<>();
+
+    private UserContext() {
+    }
+
+    public static void set(LoginUser user) {
+        HOLDER.set(user);
+    }
+
+    public static LoginUser get() {
+        return HOLDER.get();
+    }
+
+    public static Long getUserId() {
+        LoginUser u = HOLDER.get();
+        return u == null ? null : u.getUserId();
+    }
+
+    public static Integer getLevel() {
+        LoginUser u = HOLDER.get();
+        return u == null ? null : u.getLevel();
+    }
+
+    public static Long getDeptId() {
+        LoginUser u = HOLDER.get();
+        return u == null ? null : u.getDeptId();
+    }
+
+    public static void clear() {
+        HOLDER.remove();
+    }
+}
