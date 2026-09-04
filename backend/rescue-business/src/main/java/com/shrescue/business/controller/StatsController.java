@@ -7,6 +7,9 @@ import com.shrescue.business.mapper.TeamGroupMapper;
 import com.shrescue.business.mapper.TrainCheckinMapper;
 import com.shrescue.business.mapper.TrainProjectMapper;
 import com.shrescue.common.core.Result;
+import com.shrescue.system.entity.SysDept;
+import com.shrescue.system.entity.SysUser;
+import com.shrescue.system.mapper.SysDeptMapper;
 import com.shrescue.system.mapper.SysUserMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +42,8 @@ public class StatsController {
     private TeamGroupMapper groupMapper;
     @Autowired
     private SysUserMapper userMapper;
+    @Autowired
+    private SysDeptMapper deptMapper;
 
     @GetMapping("/overview")
     public Result<Map<String, Object>> overview() {
@@ -69,5 +75,39 @@ public class StatsController {
         response.setContentType("text/csv;charset=UTF-8");
         response.setHeader("Content-Disposition", "attachment; filename=train_checkin.csv");
         response.getWriter().write(sb.toString());
+    }
+
+    /** 班组维度统计报表 */
+    @GetMapping("/dept")
+    public Result<List<Map<String, Object>>> deptReport() {
+        List<SysDept> depts = deptMapper.selectList(null);
+        List<SysUser> users = userMapper.selectList(null);
+        List<TrainCheckin> checkins = checkinMapper.selectList(null);
+        Map<Long, String> deptName = new HashMap<>();
+        for (SysDept d : depts) {
+            deptName.put(d.getId(), d.getDeptName());
+        }
+        Map<Long, Long> userCount = new HashMap<>();
+        Map<Long, Long> userDept = new HashMap<>();
+        for (SysUser u : users) {
+            Long deptId = u.getDeptId() == null ? 0L : u.getDeptId();
+            userCount.merge(deptId, 1L, Long::sum);
+            userDept.put(u.getId(), deptId);
+        }
+        Map<Long, Long> checkinCount = new HashMap<>();
+        for (TrainCheckin c : checkins) {
+            Long deptId = userDept.getOrDefault(c.getUserId(), 0L);
+            checkinCount.merge(deptId, 1L, Long::sum);
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map.Entry<Long, Long> e : userCount.entrySet()) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("deptId", e.getKey());
+            m.put("deptName", deptName.getOrDefault(e.getKey(), "未分配"));
+            m.put("userCount", e.getValue());
+            m.put("checkinCount", checkinCount.getOrDefault(e.getKey(), 0L));
+            result.add(m);
+        }
+        return Result.ok(result);
     }
 }

@@ -13,7 +13,9 @@
       </el-select>
       <el-input v-model="query.chapter" placeholder="章节" clearable style="width: 160px" @keyup.enter="load" />
       <el-button type="primary" @click="load">查询</el-button>
-      <el-button type="warning" @click="openImport">批量导入</el-button>
+      <el-button type="warning" @click="openImport">JSON导入</el-button>
+      <el-button type="success" @click="excelInput.click()">Excel导入</el-button>
+      <input ref="excelInput" type="file" accept=".xlsx,.xls" style="display: none" @change="onExcelChange" />
     </div>
 
     <el-table :data="list" border stripe v-loading="loading">
@@ -60,7 +62,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getQuestionPage, importQuestions } from '@/api'
+import { getQuestionPage, importQuestions, importQuestionsExcel } from '@/api'
 
 const list = ref([])
 const total = ref(0)
@@ -68,6 +70,7 @@ const loading = ref(false)
 const query = reactive({ page: 1, size: 10, level: null, questionType: null, chapter: '' })
 const importVisible = ref(false)
 const importText = ref('')
+const excelInput = ref()
 
 const typeText = (t) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答' }[t] || t)
 
@@ -104,6 +107,22 @@ const doImport = async () => {
     load()
   } catch (e) {
     ElMessage.error('JSON 格式错误')
+  }
+}
+
+const onExcelChange = async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    const res = await importQuestionsExcel(formData)
+    ElMessage.success(res.msg || '导入成功')
+    load()
+  } catch (err) {
+    ElMessage.error('Excel 导入失败')
+  } finally {
+    e.target.value = ''
   }
 }
 

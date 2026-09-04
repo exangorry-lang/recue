@@ -121,6 +121,27 @@ public class AuthService {
         return buildUserInfo(u);
     }
 
+    public void changePassword(String oldPassword, String newPassword) {
+        LoginUser me = com.shrescue.framework.security.UserContext.get();
+        if (me == null) {
+            throw new BusinessException(401, "未登录");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new BusinessException("新密码长度不能少于6位");
+        }
+        SysUser user = userMapper.selectById(me.getUserId());
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        if (!encoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException("原密码错误");
+        }
+        user.setPassword(encoder.encode(newPassword));
+        user.setUpdateBy(me.getUserId());
+        user.setUpdateTime(new Date());
+        userMapper.updateById(user);
+    }
+
     private UserInfoVO buildUserInfo(LoginUser u) {
         UserInfoVO vo = new UserInfoVO();
         vo.setUserId(u.getUserId());

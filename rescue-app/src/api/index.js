@@ -26,3 +26,15 @@ export const submitTeamRecord = (data) => post('/team/record', data)
 export const getMyArchive = () => get('/archive/my')
 export const applyPromotion = (data) => post('/archive/promotion', data)
 export const getMyPromotions = () => get('/archive/promotion/list')
+
+// ===== 通知公告 =====
+export const getNoticeList = () => get('/sys/notice/list')
+
+// ===== 台账 =====
+export const getTrainProgress = () => get('/me/train/progress')
+export const getWeakPoints = () => get('/me/train/weak')
+export const getWrongList = () => get('/me/exam/wrong')
+export const getExamHistory = () => get('/me/exam/history')
+
+// ===== 改密 =====
+export const changePassword = (data) => post('/auth/password', data)

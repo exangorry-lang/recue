@@ -8,6 +8,7 @@ import com.shrescue.system.vo.UserInfoVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,5 +38,11 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<Void> logout() {
         return Result.ok();
+    }
+
+    @PostMapping("/password")
+    public Result<Void> changePassword(@RequestBody Map<String, String> body) {
+        authService.changePassword(body.get("oldPassword"), body.get("newPassword"));
+        return Result.ok("密码修改成功", null);
     }
 }

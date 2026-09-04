@@ -38,20 +38,46 @@
       <button class="apply-btn" :loading="applying" @click="apply">提交晋升申请</button>
     </view>
 
+    <view class="card">
+      <text class="section-title">我的台账</text>
+      <view class="info-row">
+        <text class="info-label">错题数</text>
+        <text class="info-value">{{ weak.wrongQuestionCount || 0 }}题</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">不合格打卡</text>
+        <text class="info-value">{{ weak.weakCheckinCount || 0 }}次</text>
+      </view>
+      <button class="apply-btn" @click="showChangePwd">修改密码</button>
+    </view>
+
     <button class="logout-btn" @click="logout">退出登录</button>
+
+    <view class="mask" v-if="pwdVisible" @click="pwdVisible = false">
+      <view class="pwd-box" @click.stop>
+        <text class="section-title">修改密码</text>
+        <input class="reason-input" v-model="pwdForm.oldPassword" type="password" placeholder="原密码" />
+        <input class="reason-input" v-model="pwdForm.newPassword" type="password" placeholder="新密码(至少6位)" />
+        <button class="apply-btn" :loading="changing" @click="doChangePwd">确认修改</button>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getMyArchive, applyPromotion } from '@/api'
+import { getMyArchive, applyPromotion, getWeakPoints, changePassword } from '@/api'
 
 const user = ref(uni.getStorageSync('user') || {})
 const archive = ref(null)
 const targetLevel = ref(2)
 const reason = ref('')
 const applying = ref(false)
+const weak = ref({})
+const pwdVisible = ref(false)
+const pwdForm = ref({ oldPassword: '', newPassword: '' })
+const changing = ref(false)
 
 const levelText = computed(() => {
   const u = user.value
@@ -64,6 +90,26 @@ const levelText = computed(() => {
 const load = async () => {
   const res = await getMyArchive()
   archive.value = res.data
+  const w = await getWeakPoints()
+  weak.value = w.data
+}
+
+const showChangePwd = () => {
+  pwdForm.value = { oldPassword: '', newPassword: '' }
+  pwdVisible.value = true
+}
+
+const doChangePwd = async () => {
+  changing.value = true
+  try {
+    await changePassword(pwdForm.value)
+    uni.showToast({ title: '密码修改成功', icon: 'success' })
+    pwdVisible.value = false
+  } catch (e) {
+    uni.showToast({ title: e.message || '修改失败', icon: 'none' })
+  } finally {
+    changing.value = false
+  }
 }
 
 const onTargetChange = (e) => {
@@ -117,4 +163,14 @@ onShow(load)
 .apply-btn::after { border: none; }
 .logout-btn { background: #fff; color: #F53F3F; border-radius: 12rpx; margin: 40rpx 20rpx; }
 .logout-btn::after { border: none; }
+.mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.pwd-box { width: 600rpx; background: #fff; border-radius: 16rpx; padding: 40rpx; }
 </style>

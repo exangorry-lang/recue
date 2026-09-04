@@ -1,6 +1,10 @@
 // 请求封装（uni.request）
-// H5 开发直连后端；APP 打包时改为部署服务器地址（如 http://192.168.x.x:8080）
-const BASE_URL = 'http://localhost:8080'
+// H5 端：按当前访问主机动态拼后端地址（电脑/手机局域网都能连）
+// APP 端：打包时改为部署服务器地址（如 http://192.168.71.5:8080）
+let BASE_URL = 'http://localhost:8080'
+// #ifdef H5
+BASE_URL = `http://${window.location.hostname}:8080`
+// #endif
 
 export function request(options) {
   return new Promise((resolve, reject) => {

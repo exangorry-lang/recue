@@ -51,3 +51,36 @@ export const approvePromotion = (id, data) => request.post(`/archive/promotion/$
 
 // ===== 统计 =====
 export const getStatsOverview = () => request.get('/stats/overview')
+export const getDeptReport = () => request.get('/stats/dept')
+
+// ===== 通知公告 =====
+export const getNoticeList = () => request.get('/sys/notice/list')
+export const getNoticePage = (params) => request.get('/sys/notice/page', { params })
+export const createNotice = (data) => request.post('/sys/notice', data)
+export const updateNotice = (data) => request.put('/sys/notice', data)
+export const deleteNotice = (id) => request.delete(`/sys/notice/${id}`)
+
+// ===== 日志 =====
+export const getOpLogPage = (params) => request.get('/sys/log/op/page', { params })
+export const getLoginLogPage = (params) => request.get('/sys/log/login/page', { params })
+
+// ===== 阅卷 =====
+export const getReviewPending = () => request.get('/exam/review/pending')
+export const reviewExam = (id, data) => request.post(`/exam/review/${id}`, data)
+
+// ===== 台账 =====
+export const getTrainProgress = () => request.get('/me/train/progress')
+export const getWeakPoints = () => request.get('/me/train/weak')
+export const getWrongList = () => request.get('/me/exam/wrong')
+export const getExamHistory = () => request.get('/me/exam/history')
+
+// ===== 改密 =====
+export const changePassword = (data) => request.post('/auth/password', data)
+
+// ===== 团队复盘 =====
+export const getTeamReview = (taskId) => request.get(`/team/review/${taskId}`)
+export const addTeamReview = (data) => request.post('/team/review', data)
+
+// ===== Excel 导入 =====
+export const importProjectsExcel = (formData) => request.post('/import/train-project/excel', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+export const importQuestionsExcel = (formData) => request.post('/import/question/excel', formData, { headers: { 'Content-Type': 'multipart/form-data' } })

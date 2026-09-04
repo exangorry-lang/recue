@@ -12,16 +12,26 @@
         </div>
       </el-col>
     </el-row>
+
+    <div class="card" style="margin-top: 16px">
+      <div class="page-title">班组训练统计</div>
+      <el-table :data="deptReport" border stripe>
+        <el-table-column prop="deptName" label="部门/班组" min-width="180" />
+        <el-table-column prop="userCount" label="人数" width="120" />
+        <el-table-column prop="checkinCount" label="训练打卡次数" width="160" />
+      </el-table>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getStatsOverview } from '@/api'
+import { getStatsOverview, getDeptReport } from '@/api'
 import { useUserStore } from '@/store/user'
 
 const userStore = useUserStore()
 const stats = ref({})
+const deptReport = ref([])
 
 const statCards = [
   { key: 'userCount', label: '在册人员', color: '#005A9C' },
@@ -35,6 +45,8 @@ const statCards = [
 onMounted(async () => {
   const res = await getStatsOverview()
   stats.value = res.data
+  const dept = await getDeptReport()
+  deptReport.value = dept.data
 })
 </script>
 

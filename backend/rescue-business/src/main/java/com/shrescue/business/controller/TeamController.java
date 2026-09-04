@@ -4,10 +4,12 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shrescue.business.entity.TeamGroup;
 import com.shrescue.business.entity.TeamGroupMember;
 import com.shrescue.business.entity.TeamRecord;
+import com.shrescue.business.entity.TeamReview;
 import com.shrescue.business.entity.TeamTask;
 import com.shrescue.business.mapper.TeamGroupMapper;
 import com.shrescue.business.mapper.TeamGroupMemberMapper;
 import com.shrescue.business.mapper.TeamRecordMapper;
+import com.shrescue.business.mapper.TeamReviewMapper;
 import com.shrescue.business.mapper.TeamTaskMapper;
 import com.shrescue.common.core.Result;
 import com.shrescue.framework.security.UserContext;
@@ -37,6 +39,8 @@ public class TeamController {
     private TeamTaskMapper taskMapper;
     @Autowired
     private TeamRecordMapper recordMapper;
+    @Autowired
+    private TeamReviewMapper reviewMapper;
 
     @GetMapping("/group/list")
     public Result<List<TeamGroup>> groupList() {
@@ -110,5 +114,28 @@ public class TeamController {
                 new LambdaQueryWrapper<TeamRecord>()
                         .eq(TeamRecord::getUserId, UserContext.getUserId())
                         .orderByDesc(TeamRecord::getId)));
+    }
+
+    /** 查询任务复盘/问题台账 */
+    @GetMapping("/review/{taskId}")
+    public Result<List<TeamReview>> reviews(@org.springframework.web.bind.annotation.PathVariable Long taskId) {
+        return Result.ok(reviewMapper.selectList(
+                new LambdaQueryWrapper<TeamReview>()
+                        .eq(TeamReview::getTaskId, taskId)
+                        .orderByDesc(TeamReview::getId)));
+    }
+
+    /** 提交复盘/问题台账 */
+    @PostMapping("/review")
+    public Result<Void> addReview(@RequestBody TeamReview review) {
+        review.setId(null);
+        review.setReviewerId(UserContext.getUserId());
+        if (review.getReviewTime() == null) {
+            review.setReviewTime(new Date());
+        }
+        review.setCreateTime(new Date());
+        review.setUpdateTime(new Date());
+        reviewMapper.insert(review);
+        return Result.ok();
     }
 }

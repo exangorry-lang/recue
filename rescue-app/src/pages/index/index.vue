@@ -19,13 +19,24 @@
         <text class="grid-text">{{ m.text }}</text>
       </view>
     </view>
+
+    <view class="card" v-if="notices.length">
+      <text class="section-title">通知公告</text>
+      <view class="notice-item" v-for="n in notices" :key="n.id">
+        <text class="notice-title">{{ n.title }}</text>
+        <text class="notice-content">{{ n.content }}</text>
+      </view>
+    </view>
   </view>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
+import { getNoticeList } from '@/api'
 
 const user = ref(uni.getStorageSync('user') || {})
+const notices = ref([])
 
 const levelText = computed(() => {
   if (!user.value) return ''
@@ -49,6 +60,11 @@ const go = (m) => {
     uni.navigateTo({ url: m.url })
   }
 }
+
+onShow(async () => {
+  const res = await getNoticeList()
+  notices.value = res.data
+})
 </script>
 
 <style scoped>
@@ -84,4 +100,8 @@ const go = (m) => {
 }
 .grid-icon { font-size: 56rpx; }
 .grid-text { font-size: 26rpx; color: #333; margin-top: 12rpx; }
+.notice-item { padding: 16rpx 0; border-bottom: 1rpx solid #f0f0f0; }
+.notice-item:last-child { border-bottom: none; }
+.notice-title { font-size: 28rpx; font-weight: 600; color: #333; display: block; }
+.notice-content { font-size: 26rpx; color: #666; margin-top: 6rpx; display: block; }
 </style>

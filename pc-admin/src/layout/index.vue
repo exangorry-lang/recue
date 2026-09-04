@@ -20,6 +20,8 @@
           <template #title><el-icon><Setting /></el-icon><span>系统管理</span></template>
           <el-menu-item index="/system/user">用户管理</el-menu-item>
           <el-menu-item index="/system/dept">组织架构</el-menu-item>
+          <el-menu-item index="/system/notice">通知公告</el-menu-item>
+          <el-menu-item index="/system/log">系统日志</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="training">
           <template #title><el-icon><Trophy /></el-icon><span>训练管理</span></template>
