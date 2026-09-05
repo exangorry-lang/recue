@@ -13,15 +13,20 @@ import com.shrescue.business.mapper.TeamReviewMapper;
 import com.shrescue.business.mapper.TeamTaskMapper;
 import com.shrescue.common.core.Result;
 import com.shrescue.framework.security.UserContext;
+import com.shrescue.system.entity.SysUser;
+import com.shrescue.system.mapper.SysUserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +46,8 @@ public class TeamController {
     private TeamRecordMapper recordMapper;
     @Autowired
     private TeamReviewMapper reviewMapper;
+    @Autowired
+    private SysUserMapper userMapper;
 
     @GetMapping("/group/list")
     public Result<List<TeamGroup>> groupList() {
@@ -91,6 +98,13 @@ public class TeamController {
 
     @PostMapping("/record")
     public Result<Void> submitRecord(@RequestBody TeamRecord record) {
+        Long exist = recordMapper.selectCount(
+                new LambdaQueryWrapper<TeamRecord>()
+                        .eq(TeamRecord::getTaskId, record.getTaskId())
+                        .eq(TeamRecord::getUserId, UserContext.getUserId()));
+        if (exist != null && exist > 0) {
+            throw new com.shrescue.common.exception.BusinessException("已参与过该任务，请勿重复打卡");
+        }
         record.setId(null);
         record.setUserId(UserContext.getUserId());
         if (record.getCheckinTime() == null) {
@@ -136,6 +150,39 @@ public class TeamController {
         review.setCreateTime(new Date());
         review.setUpdateTime(new Date());
         reviewMapper.insert(review);
+        return Result.ok();
+    }
+
+    /** 查看任务参与记录（含队员姓名） */
+    @GetMapping("/task/{taskId}/records")
+    public Result<List<TeamRecord>> taskRecords(@PathVariable Long taskId) {
+        List<TeamRecord> records = recordMapper.selectList(
+                new LambdaQueryWrapper<TeamRecord>()
+                        .eq(TeamRecord::getTaskId, taskId)
+                        .orderByDesc(TeamRecord::getId));
+        if (!records.isEmpty()) {
+            List<Long> userIds = records.stream().map(TeamRecord::getUserId).distinct().collect(Collectors.toList());
+            Map<Long, String> nameMap = new HashMap<>();
+            for (SysUser u : userMapper.selectBatchIds(userIds)) {
+                nameMap.put(u.getId(), u.getRealName());
+            }
+            records.forEach(r -> r.setUserName(nameMap.getOrDefault(r.getUserId(), String.valueOf(r.getUserId()))));
+        }
+        return Result.ok(records);
+    }
+
+    /** 给参与记录打分（个人贡献评分） */
+    @PostMapping("/record/{id}/score")
+    public Result<Void> score(@PathVariable Long id, @RequestBody TeamRecord body) {
+        TeamRecord record = recordMapper.selectById(id);
+        if (record == null) {
+            throw new com.shrescue.common.exception.BusinessException("参与记录不存在");
+        }
+        record.setContribution(body.getContribution());
+        record.setComment(body.getComment());
+        record.setStatus(2);
+        record.setUpdateTime(new Date());
+        recordMapper.updateById(record);
         return Result.ok();
     }
 }

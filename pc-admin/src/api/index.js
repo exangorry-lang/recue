@@ -44,6 +44,8 @@ export const getTeamList = () => request.get('/team/group/list')
 export const createTeam = (data) => request.post('/team/group', data)
 export const getTaskList = () => request.get('/team/task/list')
 export const createTask = (data) => request.post('/team/task', data)
+export const getTaskRecords = (taskId) => request.get(`/team/task/${taskId}/records`)
+export const scoreTeamRecord = (id, data) => request.post(`/team/record/${id}/score`, data)
 
 // ===== 晋升 =====
 export const getPromotionList = () => request.get('/archive/promotion/list')

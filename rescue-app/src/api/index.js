@@ -21,6 +21,7 @@ export const getMyScore = () => get('/exam/score/my')
 export const getMyGroups = () => get('/team/group/my')
 export const getTaskList = () => get('/team/task/list')
 export const submitTeamRecord = (data) => post('/team/record', data)
+export const getMyTeamRecords = () => get('/team/record/my')
 
 // ===== 档案 =====
 export const getMyArchive = () => get('/archive/my')

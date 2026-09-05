@@ -40,6 +40,12 @@
           <el-table-column label="状态" width="90">
             <template #default="{ row }">{{ ['未开始', '进行中', '已结束'][row.status] || row.status }}</template>
           </el-table-column>
+          <el-table-column label="操作" width="170" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openScore(row)">参与打分</el-button>
+              <el-button link type="warning" @click="openReview(row)">复盘</el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </el-tab-pane>
     </el-tabs>
@@ -93,13 +99,56 @@
         <el-button type="primary" @click="saveTask">下发</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="scoreDialog.visible" :title="`参与打分 - ${scoreDialog.taskName}`" width="640px">
+      <el-table :data="scoreDialog.records" border stripe>
+        <el-table-column prop="userName" label="队员" width="120" />
+        <el-table-column prop="checkinTime" label="打卡时间" width="170" />
+        <el-table-column label="贡献评分" width="150">
+          <template #default="{ row }">
+            <el-input-number v-model="row.contribution" :min="0" :max="100" :precision="1" size="small" />
+          </template>
+        </el-table-column>
+        <el-table-column label="评语" min-width="140">
+          <template #default="{ row }">
+            <el-input v-model="row.comment" size="small" placeholder="评语(可选)" />
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="80">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="saveScore(row)">保存</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-if="!scoreDialog.records.length" style="text-align:center;color:#999;padding:20px">暂无队员参与记录</div>
+    </el-dialog>
+
+    <el-dialog v-model="reviewDialog.visible" :title="`演练复盘 - ${reviewDialog.taskName}`" width="640px">
+      <el-form label-width="90px">
+        <el-form-item label="复盘总结"><el-input v-model="reviewDialog.form.summary" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item label="问题台账"><el-input v-model="reviewDialog.form.problems" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item label="改进措施"><el-input v-model="reviewDialog.form.improvements" type="textarea" :rows="2" /></el-form-item>
+      </el-form>
+      <div v-if="reviewDialog.list.length">
+        <div style="font-weight:600;margin:12px 0 8px">历史复盘</div>
+        <div v-for="(r, i) in reviewDialog.list" :key="i" style="background:#F5F7FA;padding:10px;border-radius:6px;margin-bottom:8px;font-size:13px">
+          <div><b>总结：</b>{{ r.summary || '-' }}</div>
+          <div><b>问题：</b>{{ r.problems || '-' }}</div>
+          <div><b>改进：</b>{{ r.improvements || '-' }}</div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="reviewDialog.visible = false">关闭</el-button>
+        <el-button type="primary" @click="saveReview">保存复盘</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getTeamList, createTeam, getTaskList, createTask, getUserAll } from '@/api'
+import { getTeamList, createTeam, getTaskList, createTask, getUserAll, getTaskRecords, scoreTeamRecord, getTeamReview, addTeamReview } from '@/api'
 
 const activeTab = ref('group')
 const groups = ref([])
@@ -162,6 +211,36 @@ const saveTask = async () => {
   ElMessage.success('任务已下发')
   taskDialog.visible = false
   load()
+}
+
+const scoreDialog = reactive({ visible: false, taskName: '', records: [] })
+const reviewDialog = reactive({ visible: false, taskName: '', taskId: null, form: {}, list: [] })
+
+const openScore = async (task) => {
+  const res = await getTaskRecords(task.id)
+  scoreDialog.taskName = task.name
+  scoreDialog.records = res.data || []
+  scoreDialog.visible = true
+}
+
+const saveScore = async (row) => {
+  await scoreTeamRecord(row.id, { contribution: row.contribution, comment: row.comment })
+  ElMessage.success('评分已保存')
+}
+
+const openReview = async (task) => {
+  const res = await getTeamReview(task.id)
+  reviewDialog.taskId = task.id
+  reviewDialog.taskName = task.name
+  reviewDialog.form = { summary: '', problems: '', improvements: '' }
+  reviewDialog.list = res.data || []
+  reviewDialog.visible = true
+}
+
+const saveReview = async () => {
+  await addTeamReview({ taskId: reviewDialog.taskId, ...reviewDialog.form })
+  ElMessage.success('复盘已保存')
+  reviewDialog.visible = false
 }
 
 onMounted(load)

@@ -1,6 +1,7 @@
 package com.shrescue.business.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
@@ -29,4 +30,8 @@ public class TeamRecord {
     private Integer offlineFlag;
     private Date createTime;
     private Date updateTime;
+
+    /** 队员姓名（非表字段，接口返回时填充） */
+    @TableField(exist = false)
+    private String userName;
 }

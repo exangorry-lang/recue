@@ -14,7 +14,12 @@
         <text class="task-type">{{ t.taskType === 1 ? '日常实训' : '救援演练' }}</text>
       </view>
       <text class="task-content" v-if="t.content">{{ t.content }}</text>
-      <button class="checkin-btn" @click="checkin(t)">参与打卡</button>
+      <button
+        class="checkin-btn"
+        :class="{ done: joinedTaskIds.includes(t.id) }"
+        :disabled="joinedTaskIds.includes(t.id)"
+        @click="checkin(t)"
+      >{{ joinedTaskIds.includes(t.id) ? '已参与' : '参与打卡' }}</button>
     </view>
     <view v-if="!tasks.length" class="empty">暂无团队任务</view>
   </view>
@@ -23,20 +28,23 @@
 <script setup>
 import { ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getMyGroups, getTaskList, submitTeamRecord } from '@/api'
+import { getMyGroups, getTaskList, submitTeamRecord, getMyTeamRecords } from '@/api'
 
 const groups = ref([])
 const tasks = ref([])
+const joinedTaskIds = ref([])
 
 const load = async () => {
-  const [g, t] = await Promise.all([getMyGroups(), getTaskList()])
+  const [g, t, r] = await Promise.all([getMyGroups(), getTaskList(), getMyTeamRecords()])
   groups.value = g.data
   tasks.value = t.data
+  joinedTaskIds.value = (r.data || []).map(x => x.taskId)
 }
 
 const checkin = async (t) => {
   try {
     await submitTeamRecord({ taskId: t.id, status: 1, offlineFlag: 0 })
+    joinedTaskIds.value.push(t.id)
     uni.showToast({ title: '打卡成功', icon: 'success' })
   } catch (e) {
     uni.showToast({ title: e.message || '打卡失败', icon: 'none' })
@@ -55,5 +63,6 @@ onShow(load)
 .task-content { font-size: 26rpx; color: #666; margin-top: 12rpx; display: block; line-height: 1.6; }
 .checkin-btn { background: #005A9C; color: #fff; border-radius: 12rpx; margin-top: 20rpx; }
 .checkin-btn::after { border: none; }
+.checkin-btn.done { background: #CCCCCC; }
 .empty { text-align: center; color: #999; padding: 60rpx 0; font-size: 26rpx; }
 </style>
