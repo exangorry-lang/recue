@@ -48,6 +48,14 @@ public class SysUserService {
         return result;
     }
 
+    /** 返回全部用户（供前端 ID→姓名映射，已脱敏密码） */
+    public java.util.List<SysUser> listAll() {
+        java.util.List<SysUser> users = userMapper.selectList(
+                new LambdaQueryWrapper<SysUser>().orderByAsc(SysUser::getId));
+        users.forEach(u -> u.setPassword(null));
+        return users;
+    }
+
     public SysUser getById(Long id) {
         SysUser user = userMapper.selectById(id);
         if (user != null) {

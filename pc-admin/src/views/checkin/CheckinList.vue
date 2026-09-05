@@ -4,8 +4,12 @@
 
     <el-table :data="list" border stripe v-loading="loading">
       <el-table-column prop="id" label="ID" width="70" />
-      <el-table-column prop="userId" label="队员ID" width="90" />
-      <el-table-column prop="projectId" label="训练项目ID" width="110" />
+      <el-table-column label="队员" width="110">
+        <template #default="{ row }">{{ userName(row.userId) }}</template>
+      </el-table-column>
+      <el-table-column label="训练项目" width="170">
+        <template #default="{ row }">{{ projectName(row.projectId) }}</template>
+      </el-table-column>
       <el-table-column prop="checkinTime" label="打卡时间" width="170" />
       <el-table-column label="自评" width="100">
         <template #default="{ row }">{{ ['', '合格', '基本合格', '不合格'][row.selfEval] || '-' }}</template>
@@ -47,13 +51,17 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getReviewPage, reviewCheckin } from '@/api'
+import { getReviewPage, reviewCheckin, getUserAll, getProjectPage } from '@/api'
 
 const list = ref([])
 const total = ref(0)
 const loading = ref(false)
 const query = reactive({ page: 1, size: 10 })
 const dialog = reactive({ visible: false, result: 1, comment: '', checkinId: null })
+const userMap = ref({})
+const projectMap = ref({})
+const userName = (id) => userMap.value[id] || `#${id}`
+const projectName = (id) => projectMap.value[id] || `#${id}`
 
 const load = async () => {
   loading.value = true
@@ -80,5 +88,15 @@ const save = async () => {
   load()
 }
 
-onMounted(load)
+const loadMaps = async () => {
+  const [users, projects] = await Promise.all([getUserAll(), getProjectPage({ page: 1, size: 200 })])
+  const um = {}
+  users.data.forEach(u => { um[u.id] = u.realName })
+  userMap.value = um
+  const pm = {}
+  projects.data.records.forEach(p => { pm[p.id] = p.name })
+  projectMap.value = pm
+}
+
+onMounted(() => { load(); loadMaps() })
 </script>

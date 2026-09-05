@@ -6,6 +6,7 @@ export const getMe = () => request.get('/auth/me')
 
 // ===== 用户 =====
 export const getUserPage = (params) => request.get('/sys/user/page', { params })
+export const getUserAll = () => request.get('/sys/user/all')
 export const createUser = (data) => request.post('/sys/user', data)
 export const updateUser = (data) => request.put('/sys/user', data)
 export const deleteUser = (id) => request.delete(`/sys/user/${id}`)

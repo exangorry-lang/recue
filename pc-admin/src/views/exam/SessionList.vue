@@ -32,7 +32,9 @@
         <el-table :data="reviewList" border stripe v-loading="loading">
           <el-table-column prop="id" label="记录ID" width="90" />
           <el-table-column prop="sessionId" label="场次ID" width="90" />
-          <el-table-column prop="userId" label="考生ID" width="90" />
+          <el-table-column label="考生" width="100">
+            <template #default="{ row }">{{ userName(row.userId) }}</template>
+          </el-table-column>
           <el-table-column prop="submitTime" label="交卷时间" width="170" />
           <el-table-column label="当前得分" width="110">
             <template #default="{ row }">{{ row.score ?? '-' }}</template>
@@ -87,7 +89,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getSessionList, createSession, getReviewPending, reviewExam } from '@/api'
+import { getSessionList, createSession, getReviewPending, reviewExam, getUserAll } from '@/api'
 
 const activeTab = ref('session')
 const list = ref([])
@@ -96,6 +98,8 @@ const loading = ref(false)
 const query = reactive({ level: null })
 const dialog = reactive({ visible: false, form: {} })
 const reviewDialog = reactive({ visible: false, score: 60, recordId: null })
+const userMap = ref({})
+const userName = (id) => userMap.value[id] || `#${id}`
 
 const load = async () => {
   loading.value = true
@@ -110,8 +114,11 @@ const load = async () => {
 }
 
 const loadReview = async () => {
-  const res = await getReviewPending()
+  const [res, u] = await Promise.all([getReviewPending(), getUserAll()])
   reviewList.value = res.data
+  const um = {}
+  u.data.forEach(x => { um[x.id] = x.realName })
+  userMap.value = um
 }
 
 const openAdd = () => {

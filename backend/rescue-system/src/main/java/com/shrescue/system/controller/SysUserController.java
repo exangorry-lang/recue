@@ -32,6 +32,11 @@ public class SysUserController {
         return Result.ok(userService.page(page, size, keyword));
     }
 
+    @GetMapping("/all")
+    public Result<java.util.List<SysUser>> all() {
+        return Result.ok(userService.listAll());
+    }
+
     @GetMapping("/{id}")
     public Result<SysUser> get(@PathVariable Long id) {
         return Result.ok(userService.getById(id));

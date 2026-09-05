@@ -80,6 +80,12 @@ public class ExamService {
         if (count != null && count > 0) {
             throw new BusinessException("已参加过该考试");
         }
+        // 若场次尚未组卷（例如直接入库的测试数据），自动随机组卷
+        Long qCount = examQuestionMapper.selectCount(
+                new LambdaQueryWrapper<ExamQuestion>().eq(ExamQuestion::getSessionId, sessionId));
+        if (qCount == null || qCount == 0) {
+            buildPaper(sessionId, session.getLevel());
+        }
         ExamRecord record = new ExamRecord();
         record.setSessionId(sessionId);
         record.setUserId(UserContext.getUserId());

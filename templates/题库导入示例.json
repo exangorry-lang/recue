@@ -1,0 +1,40 @@
+[
+  {
+    "level": 1,
+    "chapter": "潜水基础",
+    "questionType": 1,
+    "content": "潜水面镜的主要作用是？",
+    "options": "[\"A.保护眼睛形成可视空间\",\"B.保暖\",\"C.增加浮力\",\"D.装饰\"]",
+    "answer": "A",
+    "analysis": "面镜在水下形成空气层，让眼睛能清晰视物",
+    "score": 1
+  },
+  {
+    "level": 1,
+    "chapter": "潜水基础",
+    "questionType": 3,
+    "content": "潜水时憋气上升是安全的。",
+    "answer": "错",
+    "analysis": "憋气上升会导致肺部过度膨胀，非常危险",
+    "score": 1
+  },
+  {
+    "level": 2,
+    "chapter": "初级实操",
+    "questionType": 2,
+    "content": "下列属于潜水基本装备的有？",
+    "options": "[\"A.面镜\",\"B.呼吸管\",\"C.脚蹼\",\"D.氧气面罩\"]",
+    "answer": "ABC",
+    "analysis": "面镜、呼吸管、脚蹼是基础三件套",
+    "score": 1
+  },
+  {
+    "level": 2,
+    "chapter": "初级实操",
+    "questionType": 4,
+    "content": "简述浮力控制的重要性。",
+    "answer": "保持中性浮力可减少耗气、避免碰撞和伤害水下环境",
+    "analysis": "开放式简答题，由管理员人工阅卷",
+    "score": 2
+  }
+]

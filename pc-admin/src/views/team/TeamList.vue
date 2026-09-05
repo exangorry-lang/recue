@@ -10,7 +10,9 @@
         <el-table :data="groups" border stripe v-loading="loading">
           <el-table-column prop="id" label="ID" width="70" />
           <el-table-column prop="name" label="团队名称" min-width="200" />
-          <el-table-column prop="leaderId" label="负责人ID" width="100" />
+          <el-table-column label="负责人" width="110">
+            <template #default="{ row }">{{ userName(row.leaderId) }}</template>
+          </el-table-column>
           <el-table-column label="状态" width="90">
             <template #default="{ row }">
               <el-tag :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '启用' : '停用' }}</el-tag>
@@ -30,7 +32,9 @@
           <el-table-column label="类型" width="110">
             <template #default="{ row }">{{ row.taskType === 1 ? '日常实训' : '团队救援演练' }}</template>
           </el-table-column>
-          <el-table-column prop="groupId" label="团队ID" width="90" />
+          <el-table-column label="团队" width="150">
+            <template #default="{ row }">{{ groupName(row.groupId) }}</template>
+          </el-table-column>
           <el-table-column prop="startTime" label="开始时间" width="170" />
           <el-table-column prop="endTime" label="结束时间" width="170" />
           <el-table-column label="状态" width="90">
@@ -45,8 +49,10 @@
         <el-form-item label="团队名称" required>
           <el-input v-model="groupDialog.form.name" />
         </el-form-item>
-        <el-form-item label="负责人ID">
-          <el-input v-model="groupDialog.form.leaderId" />
+        <el-form-item label="负责人">
+          <el-select v-model="groupDialog.form.leaderId" style="width: 100%" clearable placeholder="选择负责人">
+            <el-option v-for="u in users" :key="u.id" :label="u.realName" :value="u.id" />
+          </el-select>
         </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="groupDialog.form.remark" />
@@ -93,7 +99,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getTeamList, createTeam, getTaskList, createTask } from '@/api'
+import { getTeamList, createTeam, getTaskList, createTask, getUserAll } from '@/api'
 
 const activeTab = ref('group')
 const groups = ref([])
@@ -102,13 +108,25 @@ const loading = ref(false)
 
 const groupDialog = reactive({ visible: false, form: {} })
 const taskDialog = reactive({ visible: false, form: {} })
+const users = ref([])
+const userMap = ref({})
+const groupMap = ref({})
+const userName = (id) => userMap.value[id] || `#${id}`
+const groupName = (id) => groupMap.value[id] || `#${id}`
 
 const load = async () => {
   loading.value = true
   try {
-    const [g, t] = await Promise.all([getTeamList(), getTaskList()])
+    const [g, t, u] = await Promise.all([getTeamList(), getTaskList(), getUserAll()])
     groups.value = g.data
     tasks.value = t.data
+    users.value = u.data
+    const gm = {}
+    g.data.forEach(x => { gm[x.id] = x.name })
+    groupMap.value = gm
+    const um = {}
+    u.data.forEach(x => { um[x.id] = x.realName })
+    userMap.value = um
   } finally {
     loading.value = false
   }

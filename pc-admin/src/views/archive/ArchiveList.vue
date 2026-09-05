@@ -6,7 +6,9 @@
       <el-tab-pane label="待审批晋升" name="pending">
         <el-table :data="pendingList" border stripe v-loading="loading">
           <el-table-column prop="id" label="ID" width="70" />
-          <el-table-column prop="userId" label="队员ID" width="90" />
+          <el-table-column label="队员" width="100">
+            <template #default="{ row }">{{ userName(row.userId) }}</template>
+          </el-table-column>
           <el-table-column label="晋升" width="110">
             <template #default="{ row }">{{ row.fromLevel }}级 → {{ row.toLevel }}级</template>
           </el-table-column>
@@ -45,19 +47,24 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPendingPromotions, getPromotionList, approvePromotion } from '@/api'
+import { getPendingPromotions, getPromotionList, approvePromotion, getUserAll } from '@/api'
 
 const activeTab = ref('pending')
 const pendingList = ref([])
 const myList = ref([])
 const loading = ref(false)
+const userMap = ref({})
+const userName = (id) => userMap.value[id] || `#${id}`
 
 const load = async () => {
   loading.value = true
   try {
-    const [p, m] = await Promise.all([getPendingPromotions(), getPromotionList()])
+    const [p, m, u] = await Promise.all([getPendingPromotions(), getPromotionList(), getUserAll()])
     pendingList.value = p.data
     myList.value = m.data
+    const um = {}
+    u.data.forEach(x => { um[x.id] = x.realName })
+    userMap.value = um
   } finally {
     loading.value = false
   }
