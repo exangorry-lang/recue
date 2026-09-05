@@ -46,15 +46,15 @@ const levelText = computed(() => {
 })
 
 const menus = [
-  { text: '分级训练', icon: '🏊', url: '/pages/training/list' },
-  { text: '理论学习', icon: '📚', url: '/pages/study/study' },
-  { text: '考核中心', icon: '📝', url: '/pages/exam/exam' },
-  { text: '团队训练', icon: '👥', url: '/pages/team/team' },
-  { text: '个人档案', icon: '📋', url: '/pages/profile/profile' }
+  { text: '分级训练', icon: '🏊', url: '/pages/training/list', tab: true },
+  { text: '理论学习', icon: '📚', url: '/pages/study/study', tab: true },
+  { text: '考核中心', icon: '📝', url: '/pages/exam/exam', tab: false },
+  { text: '团队训练', icon: '👥', url: '/pages/team/team', tab: true },
+  { text: '个人档案', icon: '📋', url: '/pages/profile/profile', tab: true }
 ]
 
 const go = (m) => {
-  if (m.url.indexOf('tab') > -1) {
+  if (m.tab) {
     uni.switchTab({ url: m.url })
   } else {
     uni.navigateTo({ url: m.url })
