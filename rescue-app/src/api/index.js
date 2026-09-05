@@ -7,6 +7,7 @@ export const login = (data) => post('/auth/login', data)
 export const getProjectPage = (data) => get('/train/project/page', data)
 export const getProjectDetail = (id) => get(`/train/project/${id}`)
 export const submitCheckin = (data) => post('/train/checkin', data)
+export const getMyProjectCheckins = (projectId) => get('/train/checkin/my-project', { projectId })
 
 // ===== 理论学习 =====
 export const getQuestionPage = (data) => get('/exam/question/page', data)

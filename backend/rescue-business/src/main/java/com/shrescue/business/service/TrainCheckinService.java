@@ -25,6 +25,14 @@ public class TrainCheckinService {
     private TrainCheckinReviewMapper reviewMapper;
 
     public void submit(TrainCheckin checkin) {
+        Long pending = checkinMapper.selectCount(
+                new LambdaQueryWrapper<TrainCheckin>()
+                        .eq(TrainCheckin::getUserId, UserContext.getUserId())
+                        .eq(TrainCheckin::getProjectId, checkin.getProjectId())
+                        .eq(TrainCheckin::getStatus, 0));
+        if (pending != null && pending > 0) {
+            throw new BusinessException("该训练已有待审核的打卡，请等待审核结果");
+        }
         checkin.setId(null);
         checkin.setUserId(UserContext.getUserId());
         checkin.setCheckinTime(new Date());
@@ -46,6 +54,15 @@ public class TrainCheckinService {
         qw.eq(TrainCheckin::getUserId, UserContext.getUserId())
                 .orderByDesc(TrainCheckin::getId);
         return checkinMapper.selectPage(new Page<>(page, size), qw);
+    }
+
+    /** 我的某训练项目的打卡记录（供详情页展示审核状态） */
+    public java.util.List<TrainCheckin> myByProject(Long projectId) {
+        return checkinMapper.selectList(
+                new LambdaQueryWrapper<TrainCheckin>()
+                        .eq(TrainCheckin::getUserId, UserContext.getUserId())
+                        .eq(TrainCheckin::getProjectId, projectId)
+                        .orderByDesc(TrainCheckin::getId));
     }
 
     public Page<TrainCheckin> review(long page, long size) {

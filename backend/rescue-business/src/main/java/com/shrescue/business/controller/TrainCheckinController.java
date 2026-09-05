@@ -37,6 +37,11 @@ public class TrainCheckinController {
         return Result.ok(checkinService.my(page, size));
     }
 
+    @GetMapping("/my-project")
+    public Result<java.util.List<TrainCheckin>> myByProject(@RequestParam Long projectId) {
+        return Result.ok(checkinService.myByProject(projectId));
+    }
+
     @GetMapping("/review")
     public Result<Page<TrainCheckin>> review(@RequestParam(defaultValue = "1") long page,
                                              @RequestParam(defaultValue = "10") long size) {
