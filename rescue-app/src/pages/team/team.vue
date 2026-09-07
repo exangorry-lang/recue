@@ -22,6 +22,18 @@
       >{{ joinedTaskIds.includes(t.id) ? '已参与' : '参与打卡' }}</button>
     </view>
     <view v-if="!tasks.length" class="empty">暂无团队任务</view>
+
+    <view class="section-title" style="padding: 20rpx 20rpx 0;">我的团队评分</view>
+    <view class="card" v-for="s in myScores" :key="s.id">
+      <view class="score-row">
+        <text class="score-task">{{ s.taskName }}</text>
+        <text class="score-value" :class="s.contribution != null ? 'scored' : 'unscored'">
+          {{ s.contribution != null ? s.contribution + '分' : '未评分' }}
+        </text>
+      </view>
+      <text class="score-comment" v-if="s.comment">评语：{{ s.comment }}</text>
+    </view>
+    <view v-if="!myScores.length" class="empty">暂无参与记录</view>
   </view>
 </template>
 
@@ -33,12 +45,14 @@ import { getMyGroups, getTaskList, submitTeamRecord, getMyTeamRecords } from '@/
 const groups = ref([])
 const tasks = ref([])
 const joinedTaskIds = ref([])
+const myScores = ref([])
 
 const load = async () => {
   const [g, t, r] = await Promise.all([getMyGroups(), getTaskList(), getMyTeamRecords()])
   groups.value = g.data
   tasks.value = t.data
   joinedTaskIds.value = (r.data || []).map(x => x.taskId)
+  myScores.value = r.data || []
 }
 
 const checkin = async (t) => {
@@ -65,4 +79,10 @@ onShow(load)
 .checkin-btn::after { border: none; }
 .checkin-btn.done { background: #CCCCCC; }
 .empty { text-align: center; color: #999; padding: 60rpx 0; font-size: 26rpx; }
+.score-row { display: flex; justify-content: space-between; align-items: center; }
+.score-task { font-size: 30rpx; color: #333; font-weight: 600; }
+.score-value { font-size: 30rpx; font-weight: 700; }
+.score-value.scored { color: #005A9C; }
+.score-value.unscored { color: #999; }
+.score-comment { font-size: 24rpx; color: #666; margin-top: 8rpx; display: block; }
 </style>

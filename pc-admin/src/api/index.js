@@ -12,7 +12,7 @@ export const updateUser = (data) => request.put('/sys/user', data)
 export const deleteUser = (id) => request.delete(`/sys/user/${id}`)
 export const updateUserStatus = (id, enabled) => request.put(`/sys/user/${id}/status`, null, { params: { enabled } })
 export const updateUserLevel = (id, level) => request.put(`/sys/user/${id}/level`, null, { params: { level } })
-export const resetPassword = (id) => request.put(`/sys/user/${id}/password`)
+export const resetPassword = (id, data) => request.put(`/sys/user/${id}/password`, data)
 
 // ===== 部门 =====
 export const getDeptList = () => request.get('/sys/dept/list')

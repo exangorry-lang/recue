@@ -32,21 +32,40 @@
         <view class="q-tag">{{ typeText(current.questionType) }} · {{ current.level }}级 · {{ current.chapter || '未分章' }}</view>
         <text class="q-content">{{ current.content }}</text>
 
-        <view v-if="current.questionType !== 4 && options.length" class="options">
+        <!-- 判断题：对/错按钮 -->
+        <view v-if="current.questionType === 3" class="options">
+          <view class="option" :class="optionClass('对')" @click="pickOption('对')">对</view>
+          <view class="option" :class="optionClass('错')" @click="pickOption('错')">错</view>
+        </view>
+        <!-- 单选/多选：选项列表 -->
+        <view v-else-if="current.questionType !== 4 && options.length" class="options">
           <view
             v-for="(opt, idx) in options"
             :key="idx"
             class="option"
-            :class="{ selected: selected === opt }"
-            @click="selected = opt"
+            :class="optionClass(opt)"
+            @click="pickOption(opt)"
           >{{ opt }}</view>
         </view>
+        <!-- 简答：输入框 -->
         <input v-else v-model="selected" class="answer-input" placeholder="请输入你的答案" />
 
-        <button class="check-btn" @click="showAnswer">显示答案</button>
+        <!-- 提交答案按钮（未提交时显示） -->
+        <button v-if="!submitted" class="check-btn" @click="submitAnswer">提交答案</button>
 
-        <view v-if="shown" class="result">
-          <text class="answer-text">正确答案：{{ current.answer }}</text>
+        <!-- 提交后结果 -->
+        <view v-if="submitted" class="result">
+          <template v-if="isCorrect === true">
+            <text class="answer-text">回答正确 ✓</text>
+            <text class="answer-text">正确答案：{{ current.answer }}</text>
+          </template>
+          <template v-else-if="isCorrect === false">
+            <text class="wrong-your">您的选择：{{ displaySelected }}</text>
+            <text class="answer-text">正确答案：{{ current.answer }}</text>
+          </template>
+          <template v-else>
+            <text class="answer-text">参考答案：{{ current.answer }}</text>
+          </template>
           <text class="analysis" v-if="current.analysis">解析：{{ current.analysis }}</text>
         </view>
       </view>
@@ -82,7 +101,7 @@ const questions = ref([])
 const index = ref(0)
 const loading = ref(false)
 const selected = ref('')
-const shown = ref(false)
+const submitted = ref(false)
 
 const typeLabel = computed(() => typeList.find(t => t.value === type.value)?.label || '全部题型')
 const current = computed(() => questions.value[index.value] || null)
@@ -94,6 +113,51 @@ const options = computed(() => {
   } catch (e) {
     return []
   }
+})
+
+const optionCode = (opt) => {
+  const match = String(opt).trim().match(/^([A-Za-z])[.、．\s]/)
+  return match ? match[1].toUpperCase() : String(opt).trim()
+}
+const normalizedAnswer = (answer) => String(answer || '').toUpperCase().replace(/[\s,，、]/g, '').split('').sort().join('')
+const isMultiple = () => current.value?.questionType === 2
+const isOptionSelected = (opt) => isMultiple()
+  ? selected.value.includes(optionCode(opt))
+  : selected.value === optionCode(opt)
+
+const optionClass = (opt) => {
+  if (!submitted.value) {
+    // 未提交：只显示选中态
+    return { selected: isOptionSelected(opt) }
+  }
+  const code = optionCode(opt)
+  const inAnswer = normalizedAnswer(current.value?.answer).includes(code)
+  return {
+    selected: isOptionSelected(opt),
+    correct: inAnswer,
+    wrong: isOptionSelected(opt) && !inAnswer
+  }
+}
+
+const pickOption = (opt) => {
+  if (submitted.value) return
+  const code = optionCode(opt)
+  if (!isMultiple()) {
+    selected.value = code
+    return
+  }
+  const values = selected.value.split('').filter(Boolean)
+  selected.value = values.includes(code)
+    ? values.filter(value => value !== code).join('')
+    : [...values, code].sort().join('')
+}
+
+const displaySelected = computed(() => selected.value)
+
+const isCorrect = computed(() => {
+  if (!current.value || !submitted.value) return null
+  if (current.value.questionType === 4) return null
+  return normalizedAnswer(selected.value) === normalizedAnswer(current.value.answer)
 })
 
 const typeText = (t) => ({ 1: '单选', 2: '多选', 3: '判断', 4: '简答' }[t] || t)
@@ -119,7 +183,7 @@ const load = async () => {
     questions.value = res.data.records
     index.value = 0
     selected.value = ''
-    shown.value = false
+    submitted.value = false
   } finally {
     loading.value = false
   }
@@ -135,15 +199,19 @@ const onTypeChange = (e) => {
   load()
 }
 
-const showAnswer = () => {
-  shown.value = true
+const submitAnswer = () => {
+  if (!selected.value) {
+    uni.showToast({ title: '请先选择答案', icon: 'none' })
+    return
+  }
+  submitted.value = true
 }
 
 const prev = () => {
   if (index.value > 0) {
     index.value--
     selected.value = ''
-    shown.value = false
+    submitted.value = false
   }
 }
 
@@ -151,7 +219,7 @@ const next = () => {
   if (index.value < questions.value.length - 1) {
     index.value++
     selected.value = ''
-    shown.value = false
+    submitted.value = false
   }
 }
 
@@ -178,11 +246,14 @@ onShow(() => {
   color: #333;
 }
 .option.selected { border-color: #005A9C; background: #cce2ef; }
+.option.wrong { border-color: #F53F3F; background: #FFF1F0; color: #C2382B; }
+.option.correct { border-color: #09B865; background: #ECF9F1; color: #087A46; }
 .answer-input { background: #F5F7FA; border-radius: 12rpx; padding: 20rpx; margin-top: 20rpx; font-size: 28rpx; }
 .check-btn { background: #005A9C; color: #fff; border-radius: 12rpx; margin-top: 30rpx; }
 .check-btn::after { border: none; }
 .result { margin-top: 20rpx; }
 .answer-text { font-size: 28rpx; color: #09B865; display: block; }
+.wrong-your { font-size: 28rpx; color: #F53F3F; display: block; margin-bottom: 4rpx; }
 .analysis { font-size: 26rpx; color: #666; margin-top: 8rpx; display: block; line-height: 1.6; }
 .wrong-my { font-size: 28rpx; color: #F53F3F; margin-top: 12rpx; display: block; }
 .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 20rpx 40rpx; }

@@ -3,6 +3,8 @@ package com.shrescue.system.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shrescue.common.core.Result;
+import com.shrescue.common.constant.Constants;
+import com.shrescue.framework.security.RequireRole;
 import com.shrescue.system.entity.SysLoginLog;
 import com.shrescue.system.entity.SysOpLog;
 import com.shrescue.system.mapper.SysLoginLogMapper;
@@ -26,6 +28,7 @@ public class SysLogController {
     @Autowired
     private SysLoginLogMapper loginLogMapper;
 
+    @RequireRole(Constants.ROLE_SUPER_ADMIN)
     @GetMapping("/op/page")
     public Result<Page<SysOpLog>> opPage(@RequestParam(defaultValue = "1") long page,
                                          @RequestParam(defaultValue = "10") long size,
@@ -38,6 +41,7 @@ public class SysLogController {
         return Result.ok(opLogMapper.selectPage(new Page<>(page, size), qw));
     }
 
+    @RequireRole(Constants.ROLE_SUPER_ADMIN)
     @GetMapping("/login/page")
     public Result<Page<SysLoginLog>> loginPage(@RequestParam(defaultValue = "1") long page,
                                                @RequestParam(defaultValue = "10") long size,

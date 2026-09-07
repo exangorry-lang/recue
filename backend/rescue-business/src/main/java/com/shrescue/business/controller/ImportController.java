@@ -9,8 +9,10 @@ import com.shrescue.business.entity.TrainProject;
 import com.shrescue.business.mapper.QuestionBankMapper;
 import com.shrescue.business.mapper.TeamTaskMapper;
 import com.shrescue.business.mapper.TrainProjectMapper;
+import com.shrescue.common.constant.Constants;
 import com.shrescue.common.core.Result;
 import com.shrescue.framework.aspect.OpLog;
+import com.shrescue.framework.security.RequireRole;
 import com.shrescue.framework.security.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,6 +30,8 @@ import java.util.List;
 /**
  * 批量数据导入接口（JSON + Excel）
  */
+// Training content and question banks are shared across all departments.
+@RequireRole(Constants.ROLE_SUPER_ADMIN)
 @RestController
 @RequestMapping("/import")
 public class ImportController {

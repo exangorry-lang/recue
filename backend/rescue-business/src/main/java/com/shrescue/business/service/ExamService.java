@@ -19,6 +19,7 @@ import com.shrescue.common.exception.BusinessException;
 import com.shrescue.framework.security.UserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -53,9 +54,21 @@ public class ExamService {
     /**
      * 创建考试场次并随机组卷
      */
+    @Transactional
     public void createSession(ExamSession session) {
+        if (session.getName() == null || session.getName().isBlank()
+                || session.getLevel() == null || session.getLevel() < 1 || session.getLevel() > 5) {
+            throw new BusinessException("考试名称和等级不合法");
+        }
+        if (session.getDuration() == null || session.getDuration() <= 0
+                || session.getTotalScore() == null || session.getTotalScore().compareTo(BigDecimal.ZERO) <= 0
+                || session.getPassScore() == null || session.getPassScore().compareTo(BigDecimal.ZERO) < 0
+                || session.getPassScore().compareTo(session.getTotalScore()) > 0) {
+            throw new BusinessException("考试时长、总分或及格线不合法");
+        }
         session.setId(null);
-        session.setStatus(0);
+        // 新建场次默认可用；需要定时开放时由 start/endTime 控制。
+        session.setStatus(1);
         session.setCreateBy(UserContext.getUserId());
         session.setCreateTime(new Date());
         session.setUpdateTime(new Date());
@@ -66,10 +79,17 @@ public class ExamService {
     /**
      * 开始考试（返回题目，不含答案）
      */
+    @Transactional
     public Map<String, Object> start(Long sessionId) {
         ExamSession session = sessionMapper.selectById(sessionId);
         if (session == null) {
             throw new BusinessException("考试场次不存在");
+        }
+        Date now = new Date();
+        if (!Integer.valueOf(1).equals(session.getStatus())
+                || (session.getStartTime() != null && now.before(session.getStartTime()))
+                || (session.getEndTime() != null && now.after(session.getEndTime()))) {
+            throw new BusinessException("该考试当前未开放");
         }
         if (LevelAuth.isRescuer(UserContext.get()) && session.getLevel() > UserContext.getLevel()) {
             throw new BusinessException("等级不足，无法参加该考试");
@@ -85,6 +105,10 @@ public class ExamService {
                 new LambdaQueryWrapper<ExamQuestion>().eq(ExamQuestion::getSessionId, sessionId));
         if (qCount == null || qCount == 0) {
             buildPaper(sessionId, session.getLevel());
+        }
+        if (examQuestionMapper.selectCount(new LambdaQueryWrapper<ExamQuestion>()
+                .eq(ExamQuestion::getSessionId, sessionId)) == 0) {
+            throw new BusinessException("该等级暂无可用于考试的题目");
         }
         ExamRecord record = new ExamRecord();
         record.setSessionId(sessionId);
@@ -105,6 +129,7 @@ public class ExamService {
     /**
      * 交卷判分
      */
+    @Transactional
     public Map<String, Object> submit(Long recordId, List<AnswerItem> answers) {
         ExamRecord record = recordMapper.selectById(recordId);
         if (record == null) {
@@ -117,39 +142,87 @@ public class ExamService {
             throw new BusinessException("该考试已交卷");
         }
         ExamSession session = sessionMapper.selectById(record.getSessionId());
+        if (session == null) {
+            throw new BusinessException("考试场次不存在");
+        }
+        Date now = new Date();
+        if (session.getDuration() != null && record.getCreateTime() != null
+                && now.after(new Date(record.getCreateTime().getTime() + session.getDuration() * 60_000L))) {
+            throw new BusinessException("考试时间已结束");
+        }
 
-        BigDecimal total = BigDecimal.ZERO;
-        int correctCount = 0;
-        boolean hasSubjective = false;
+        List<ExamQuestion> paper = examQuestionMapper.selectList(new LambdaQueryWrapper<ExamQuestion>()
+                .eq(ExamQuestion::getSessionId, record.getSessionId()));
+        if (paper.isEmpty()) {
+            throw new BusinessException("考试试卷为空");
+        }
+        List<Long> questionIds = paper.stream().map(ExamQuestion::getQuestionId).collect(Collectors.toList());
+        List<QuestionBank> paperQuestions = questionMapper.selectBatchIds(questionIds);
+        if (paperQuestions.size() != questionIds.size()) {
+            throw new BusinessException("试卷题目已失效，请联系管理员");
+        }
+        Map<Long, QuestionBank> questionMap = paperQuestions.stream()
+                .collect(Collectors.toMap(QuestionBank::getId, q -> q));
+        Map<Long, String> submitted = new HashMap<>();
         if (answers != null) {
             for (AnswerItem item : answers) {
-                QuestionBank q = questionMapper.selectById(item.getQuestionId());
-                if (q == null) {
-                    continue;
+                if (item == null || item.getQuestionId() == null || !questionMap.containsKey(item.getQuestionId())) {
+                    throw new BusinessException("提交了不属于本场考试的题目");
                 }
-                ExamAnswer ea = new ExamAnswer();
-                ea.setRecordId(recordId);
-                ea.setQuestionId(item.getQuestionId());
-                ea.setUserAnswer(item.getAnswer());
-                if (q.getQuestionType() != null && q.getQuestionType() == 4) {
-                    hasSubjective = true;
-                    ea.setIsCorrect(null);
-                    ea.setScore(BigDecimal.ZERO);
-                } else {
-                    boolean correct = isCorrect(q, item.getAnswer());
-                    ea.setIsCorrect(correct ? 1 : 0);
-                    BigDecimal score = correct ? (q.getScore() == null ? BigDecimal.ONE : q.getScore()) : BigDecimal.ZERO;
-                    ea.setScore(score);
-                    total = total.add(score);
-                    if (correct) {
-                        correctCount++;
-                    }
+                if (submitted.containsKey(item.getQuestionId())) {
+                    throw new BusinessException("同一题目不能重复提交");
                 }
-                answerMapper.insert(ea);
+                submitted.put(item.getQuestionId(), item.getAnswer());
             }
         }
 
-        BigDecimal passScore = session.getPassScore() == null ? new BigDecimal("60") : session.getPassScore();
+        BigDecimal total = BigDecimal.ZERO;
+        int correctCount = 0;
+        List<Map<String, Object>> questionResults = new ArrayList<>();
+        boolean hasSubjective = paperQuestions.stream().anyMatch(q -> Integer.valueOf(4).equals(q.getQuestionType()));
+        BigDecimal rawFullScore = paperQuestions.stream()
+                .map(q -> q.getScore() == null ? BigDecimal.ONE : q.getScore())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (rawFullScore.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("试卷分值配置错误");
+        }
+        BigDecimal totalScore = session.getTotalScore() == null ? rawFullScore : session.getTotalScore();
+        for (QuestionBank q : paperQuestions) {
+            String answer = submitted.get(q.getId());
+            ExamAnswer ea = new ExamAnswer();
+            ea.setRecordId(recordId);
+            ea.setQuestionId(q.getId());
+            ea.setUserAnswer(answer);
+            Map<String, Object> qr = new HashMap<>();
+            qr.put("questionId", q.getId());
+            qr.put("questionType", q.getQuestionType());
+            qr.put("content", q.getContent());
+            qr.put("options", q.getOptions());
+            qr.put("userAnswer", answer);
+            qr.put("answer", q.getAnswer());
+            qr.put("analysis", q.getAnalysis());
+            if (Integer.valueOf(4).equals(q.getQuestionType())) {
+                ea.setIsCorrect(null);
+                ea.setScore(BigDecimal.ZERO);
+                qr.put("isCorrect", null);
+            } else {
+                boolean correct = isCorrect(q, answer);
+                ea.setIsCorrect(correct ? 1 : 0);
+                BigDecimal weight = (q.getScore() == null ? BigDecimal.ONE : q.getScore())
+                        .multiply(totalScore).divide(rawFullScore, 2, java.math.RoundingMode.HALF_UP);
+                BigDecimal score = correct ? weight : BigDecimal.ZERO;
+                ea.setScore(score);
+                total = total.add(score);
+                if (correct) {
+                    correctCount++;
+                }
+                qr.put("isCorrect", correct ? 1 : 0);
+            }
+            answerMapper.insert(ea);
+            questionResults.add(qr);
+        }
+
+        BigDecimal passScore = session.getPassScore() == null ? totalScore.multiply(new BigDecimal("0.6")) : session.getPassScore();
         boolean pass = total.compareTo(passScore) >= 0;
         record.setScore(total);
         record.setIsPass(hasSubjective ? null : (pass ? 1 : 0));
@@ -158,22 +231,26 @@ public class ExamService {
         record.setUpdateTime(new Date());
         recordMapper.updateById(record);
 
-        ExamScore score = new ExamScore();
-        score.setRecordId(recordId);
-        score.setUserId(record.getUserId());
-        score.setSessionId(record.getSessionId());
-        score.setLevel(session.getLevel());
-        score.setScore(total);
-        score.setIsPass(pass ? 1 : 0);
-        score.setCreateTime(new Date());
-        scoreMapper.insert(score);
+        // 有简答题时需人工阅卷，阅卷后再归档最终成绩
+        if (!hasSubjective) {
+            ExamScore score = new ExamScore();
+            score.setRecordId(recordId);
+            score.setUserId(record.getUserId());
+            score.setSessionId(record.getSessionId());
+            score.setLevel(session.getLevel());
+            score.setScore(total);
+            score.setIsPass(pass ? 1 : 0);
+            score.setCreateTime(new Date());
+            scoreMapper.insert(score);
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("score", total);
         result.put("passScore", passScore);
-        result.put("isPass", pass ? 1 : 0);
+        result.put("isPass", hasSubjective ? null : (pass ? 1 : 0));
         result.put("correctCount", correctCount);
         result.put("hasSubjective", hasSubjective);
+        result.put("questionResults", questionResults);
         return result;
     }
 
@@ -185,6 +262,9 @@ public class ExamService {
                 .eq(QuestionBank::getLevel, level)
                 .eq(QuestionBank::getStatus, 1));
         Collections.shuffle(questions);
+        if (questions.isEmpty()) {
+            throw new BusinessException("该等级暂无可用于考试的题目");
+        }
         if (questions.size() > DEFAULT_QUESTION_COUNT) {
             questions = questions.subList(0, DEFAULT_QUESTION_COUNT);
         }
@@ -238,6 +318,20 @@ public class ExamService {
         if (q.getAnswer() == null || userAnswer == null) {
             return false;
         }
-        return q.getAnswer().trim().equalsIgnoreCase(userAnswer.trim());
+        String expected = normalizeAnswer(q.getAnswer());
+        String actual = normalizeAnswer(userAnswer);
+        return expected.equals(actual);
+    }
+
+    private String normalizeAnswer(String answer) {
+        String trimmed = answer.trim().toUpperCase().replaceAll("[\\s,，、]", "");
+        // Clients normally submit option codes (A / ABC). Also accept a legacy
+        // display value such as "A. 面镜" for single-choice compatibility.
+        if (trimmed.matches("^[A-Z][.．].*")) {
+            trimmed = trimmed.substring(0, 1);
+        }
+        char[] values = trimmed.toCharArray();
+        java.util.Arrays.sort(values);
+        return new String(values);
     }
 }

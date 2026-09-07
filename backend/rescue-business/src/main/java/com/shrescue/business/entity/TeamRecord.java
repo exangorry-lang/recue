@@ -34,4 +34,8 @@ public class TeamRecord {
     /** 队员姓名（非表字段，接口返回时填充） */
     @TableField(exist = false)
     private String userName;
+
+    /** 任务名称（非表字段，接口返回时填充） */
+    @TableField(exist = false)
+    private String taskName;
 }

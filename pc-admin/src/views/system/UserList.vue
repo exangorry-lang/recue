@@ -11,6 +11,9 @@
       <el-table-column prop="id" label="ID" width="70" />
       <el-table-column prop="username" label="账号" width="130" />
       <el-table-column prop="realName" label="姓名" width="110" />
+      <el-table-column label="所属部门" width="140">
+        <template #default="{ row }">{{ deptName(row.deptId) }}</template>
+      </el-table-column>
       <el-table-column prop="phone" label="手机号" width="130" />
       <el-table-column label="等级" width="80">
         <template #default="{ row }">{{ row.rescueLevel }}级</template>
@@ -59,6 +62,9 @@
         <el-form-item label="姓名" required>
           <el-input v-model="dialog.form.realName" placeholder="真实姓名" />
         </el-form-item>
+        <el-form-item v-if="!dialog.isEdit" label="初始密码" required>
+          <el-input v-model="dialog.form.password" type="password" show-password placeholder="至少8位" />
+        </el-form-item>
         <el-form-item label="手机号">
           <el-input v-model="dialog.form.phone" placeholder="手机号" />
         </el-form-item>
@@ -82,6 +88,15 @@
       <template #footer>
         <el-button @click="dialog.visible = false">取消</el-button>
         <el-button type="primary" @click="save">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="passwordDialog.visible" title="设置临时密码" width="380px">
+      <el-alert title="请将临时密码通过安全渠道告知队员。" type="warning" :closable="false" style="margin-bottom: 16px" />
+      <el-input v-model="passwordDialog.newPassword" type="password" show-password placeholder="至少8位" />
+      <template #footer>
+        <el-button @click="passwordDialog.visible = false">取消</el-button>
+        <el-button type="primary" @click="savePassword">确认重置</el-button>
       </template>
     </el-dialog>
 
@@ -110,6 +125,7 @@ const query = reactive({ page: 1, size: 10, keyword: '' })
 
 const dialog = reactive({ visible: false, isEdit: false, form: {} })
 const levelDialog = reactive({ visible: false, level: 1, userId: null })
+const passwordDialog = reactive({ visible: false, userId: null, newPassword: '' })
 
 const load = async () => {
   loading.value = true
@@ -127,9 +143,14 @@ const loadDepts = async () => {
   depts.value = res.data
 }
 
+const deptName = (id) => {
+  const d = depts.value.find(x => x.id === id)
+  return d ? d.deptName : '未分配'
+}
+
 const openAdd = () => {
   dialog.isEdit = false
-  dialog.form = { username: '', realName: '', phone: '', deptId: null, rescueLevel: 1, jobStatus: 1 }
+  dialog.form = { username: '', realName: '', password: '', phone: '', deptId: null, rescueLevel: 1, jobStatus: 1 }
   dialog.visible = true
 }
 
@@ -140,8 +161,8 @@ const openEdit = (row) => {
 }
 
 const save = async () => {
-  if (!dialog.form.username || !dialog.form.realName) {
-    ElMessage.warning('请填写账号和姓名')
+  if (!dialog.form.username || !dialog.form.realName || (!dialog.isEdit && dialog.form.password.length < 8)) {
+    ElMessage.warning('请填写账号、姓名和至少8位的初始密码')
     return
   }
   if (dialog.isEdit) {
@@ -171,12 +192,19 @@ const toggleStatus = async (row) => {
 }
 
 const resetPwd = (row) => {
-  ElMessageBox.confirm(`确认将「${row.realName}」密码重置为默认密码 admin123？`, '提示', { type: 'warning' })
-    .then(async () => {
-      await resetPassword(row.id)
-      ElMessage.success('已重置为 admin123')
-    })
-    .catch(() => {})
+  passwordDialog.userId = row.id
+  passwordDialog.newPassword = ''
+  passwordDialog.visible = true
+}
+
+const savePassword = async () => {
+  if (passwordDialog.newPassword.length < 8) {
+    ElMessage.warning('临时密码至少8位')
+    return
+  }
+  await resetPassword(passwordDialog.userId, { newPassword: passwordDialog.newPassword })
+  ElMessage.success('临时密码已更新')
+  passwordDialog.visible = false
 }
 
 const openLevel = (row) => {

@@ -9,7 +9,7 @@
             <el-option v-for="i in 5" :key="i" :label="i + '级'" :value="i" />
           </el-select>
           <el-button type="primary" @click="load">查询</el-button>
-          <el-button type="success" @click="openAdd">创建场次</el-button>
+          <el-button v-if="userStore.isSuperAdmin" type="success" @click="openAdd">创建场次</el-button>
         </div>
         <el-table :data="list" border stripe v-loading="loading">
           <el-table-column prop="id" label="ID" width="70" />
@@ -90,6 +90,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getSessionList, createSession, getReviewPending, reviewExam, getUserAll } from '@/api'
+import { useUserStore } from '@/store/user'
+
+const userStore = useUserStore()
 
 const activeTab = ref('session')
 const list = ref([])

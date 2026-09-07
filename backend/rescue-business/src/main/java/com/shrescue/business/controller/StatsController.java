@@ -1,12 +1,19 @@
 package com.shrescue.business.controller;
 
 import com.shrescue.business.entity.TrainCheckin;
+import com.shrescue.business.entity.ExamScore;
+import com.shrescue.business.entity.TeamGroup;
 import com.shrescue.business.mapper.ExamScoreMapper;
 import com.shrescue.business.mapper.QuestionBankMapper;
 import com.shrescue.business.mapper.TeamGroupMapper;
 import com.shrescue.business.mapper.TrainCheckinMapper;
 import com.shrescue.business.mapper.TrainProjectMapper;
 import com.shrescue.common.core.Result;
+import com.shrescue.common.constant.Constants;
+import com.shrescue.framework.security.LoginUser;
+import com.shrescue.framework.security.RequireRole;
+import com.shrescue.framework.security.ScopeUtil;
+import com.shrescue.framework.security.UserContext;
 import com.shrescue.system.entity.SysDept;
 import com.shrescue.system.entity.SysUser;
 import com.shrescue.system.mapper.SysDeptMapper;
@@ -45,18 +52,28 @@ public class StatsController {
     @Autowired
     private SysDeptMapper deptMapper;
 
+    @RequireRole({Constants.ROLE_SUPER_ADMIN, Constants.ROLE_DEPT_LEADER})
     @GetMapping("/overview")
     public Result<Map<String, Object>> overview() {
         Map<String, Object> map = new HashMap<>();
+        List<SysUser> scopedUsers = scopedUsers();
+        List<Long> userIds = scopedUsers.stream().map(SysUser::getId).toList();
         map.put("trainProjectCount", projectMapper.selectCount(null));
-        map.put("checkinCount", checkinMapper.selectCount(null));
+        map.put("checkinCount", userIds.isEmpty() ? 0 : checkinMapper.selectCount(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<TrainCheckin>()
+                        .in(TrainCheckin::getUserId, userIds)));
         map.put("questionCount", questionMapper.selectCount(null));
-        map.put("examScoreCount", scoreMapper.selectCount(null));
-        map.put("teamGroupCount", groupMapper.selectCount(null));
-        map.put("userCount", userMapper.selectCount(null));
+        map.put("examScoreCount", userIds.isEmpty() ? 0 : scoreMapper.selectCount(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ExamScore>()
+                        .in(ExamScore::getUserId, userIds)));
+        map.put("teamGroupCount", ScopeUtil.hasAllScope(UserContext.get()) ? groupMapper.selectCount(null)
+                : groupMapper.selectCount(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<TeamGroup>()
+                .eq(TeamGroup::getDeptId, UserContext.getDeptId())));
+        map.put("userCount", scopedUsers.size());
         return Result.ok(map);
     }
 
+    @RequireRole(Constants.ROLE_SUPER_ADMIN)
     @GetMapping("/train/export")
     public void exportTrain(HttpServletResponse response) throws IOException {
         List<TrainCheckin> list = checkinMapper.selectList(null);
@@ -78,11 +95,15 @@ public class StatsController {
     }
 
     /** 班组维度统计报表 */
+    @RequireRole({Constants.ROLE_SUPER_ADMIN, Constants.ROLE_DEPT_LEADER})
     @GetMapping("/dept")
     public Result<List<Map<String, Object>>> deptReport() {
         List<SysDept> depts = deptMapper.selectList(null);
-        List<SysUser> users = userMapper.selectList(null);
-        List<TrainCheckin> checkins = checkinMapper.selectList(null);
+        List<SysUser> users = scopedUsers();
+        List<Long> userIds = users.stream().map(SysUser::getId).toList();
+        List<TrainCheckin> checkins = userIds.isEmpty() ? List.of() : checkinMapper.selectList(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<TrainCheckin>()
+                        .in(TrainCheckin::getUserId, userIds));
         Map<Long, String> deptName = new HashMap<>();
         for (SysDept d : depts) {
             deptName.put(d.getId(), d.getDeptName());
@@ -109,5 +130,17 @@ public class StatsController {
             result.add(m);
         }
         return Result.ok(result);
+    }
+
+    private List<SysUser> scopedUsers() {
+        LoginUser me = UserContext.get();
+        if (ScopeUtil.hasAllScope(me)) {
+            return userMapper.selectList(null);
+        }
+        if (ScopeUtil.hasDeptScope(me) && me.getDeptId() != null) {
+            return userMapper.selectList(new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysUser>()
+                    .eq(SysUser::getDeptId, me.getDeptId()));
+        }
+        return List.of();
     }
 }

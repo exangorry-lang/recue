@@ -19,17 +19,17 @@
         <el-sub-menu index="system">
           <template #title><el-icon><Setting /></el-icon><span>系统管理</span></template>
           <el-menu-item index="/system/user">用户管理</el-menu-item>
-          <el-menu-item index="/system/dept">组织架构</el-menu-item>
+          <el-menu-item v-if="userStore.isSuperAdmin" index="/system/dept">组织架构</el-menu-item>
           <el-menu-item index="/system/notice">通知公告</el-menu-item>
-          <el-menu-item index="/system/log">系统日志</el-menu-item>
+          <el-menu-item v-if="userStore.isSuperAdmin" index="/system/log">系统日志</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="training">
           <template #title><el-icon><Trophy /></el-icon><span>训练管理</span></template>
-          <el-menu-item index="/training/project">训练项目</el-menu-item>
+          <el-menu-item v-if="userStore.isSuperAdmin" index="/training/project">训练项目</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="exam">
           <template #title><el-icon><EditPen /></el-icon><span>考核管理</span></template>
-          <el-menu-item index="/exam/question">题库管理</el-menu-item>
+          <el-menu-item v-if="userStore.isSuperAdmin" index="/exam/question">题库管理</el-menu-item>
           <el-menu-item index="/exam/session">考试场次</el-menu-item>
         </el-sub-menu>
         <el-menu-item index="/team"><el-icon><User /></el-icon><span>团队管理</span></el-menu-item>

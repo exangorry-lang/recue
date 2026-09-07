@@ -3,7 +3,9 @@ package com.shrescue.business.controller;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shrescue.business.entity.TrainCheckin;
 import com.shrescue.business.service.TrainCheckinService;
+import com.shrescue.common.constant.Constants;
 import com.shrescue.common.core.Result;
+import com.shrescue.framework.security.RequireRole;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,12 +44,14 @@ public class TrainCheckinController {
         return Result.ok(checkinService.myByProject(projectId));
     }
 
+    @RequireRole({Constants.ROLE_SUPER_ADMIN, Constants.ROLE_DEPT_LEADER})
     @GetMapping("/review")
     public Result<Page<TrainCheckin>> review(@RequestParam(defaultValue = "1") long page,
                                              @RequestParam(defaultValue = "10") long size) {
         return Result.ok(checkinService.review(page, size));
     }
 
+    @RequireRole({Constants.ROLE_SUPER_ADMIN, Constants.ROLE_DEPT_LEADER})
     @PostMapping("/{id}/review")
     public Result<Void> review(@PathVariable Long id, @RequestBody Map<String, Object> body) {
         Integer result = (Integer) body.get("result");

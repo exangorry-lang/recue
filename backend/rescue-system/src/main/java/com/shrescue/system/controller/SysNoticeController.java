@@ -2,9 +2,11 @@ package com.shrescue.system.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.shrescue.common.constant.Constants;
 import com.shrescue.common.core.Result;
 import com.shrescue.common.exception.BusinessException;
 import com.shrescue.framework.aspect.OpLog;
+import com.shrescue.framework.security.RequireRole;
 import com.shrescue.framework.security.UserContext;
 import com.shrescue.system.entity.SysNotice;
 import com.shrescue.system.mapper.SysNoticeMapper;
@@ -44,6 +46,7 @@ public class SysNoticeController {
     }
 
     /** 管理端分页（含草稿） */
+    @RequireRole({Constants.ROLE_SUPER_ADMIN, Constants.ROLE_DEPT_LEADER})
     @GetMapping("/page")
     public Result<Page<SysNotice>> page(@RequestParam(defaultValue = "1") long page,
                                         @RequestParam(defaultValue = "10") long size,
@@ -57,6 +60,7 @@ public class SysNoticeController {
     }
 
     @OpLog(module = "通知公告", action = "新增通知公告")
+    @RequireRole({Constants.ROLE_SUPER_ADMIN, Constants.ROLE_DEPT_LEADER})
     @PostMapping
     public Result<Void> create(@RequestBody SysNotice notice) {
         notice.setId(null);
@@ -77,6 +81,7 @@ public class SysNoticeController {
     }
 
     @OpLog(module = "通知公告", action = "修改通知公告")
+    @RequireRole({Constants.ROLE_SUPER_ADMIN, Constants.ROLE_DEPT_LEADER})
     @PutMapping
     public Result<Void> update(@RequestBody SysNotice notice) {
         if (notice.getId() == null) {
@@ -89,6 +94,7 @@ public class SysNoticeController {
     }
 
     @OpLog(module = "通知公告", action = "删除通知公告")
+    @RequireRole({Constants.ROLE_SUPER_ADMIN, Constants.ROLE_DEPT_LEADER})
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         noticeMapper.deleteById(id);

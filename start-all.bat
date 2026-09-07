@@ -3,6 +3,14 @@ title Shanghai Rescue Training System - Launcher
 
 cd /d "%~dp0"
 
+rem --- Local development environment variables (production uses a secret store) ---
+set "DB_URL=jdbc:mysql://localhost:3306/rescue_training?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
+set "DB_USERNAME=root"
+set "DB_PASSWORD=root123456"
+set "JWT_SECRET=shrescue-jwt-secret-key-2026-shanghai-rescue-base-training-system-0123456789"
+set "INITIAL_USER_PASSWORD=admin123"
+set "CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174"
+
 echo ==========================================
 echo   Shanghai Rescue Training System
 echo ==========================================
@@ -36,7 +44,7 @@ echo   PC Admin : http://localhost:5174
 echo   Android  : http://localhost:5173
 echo   Backend  : http://localhost:8080
 echo.
-echo   Default account: admin / admin123
+echo   Initial account password is supplied through INITIAL_USER_PASSWORD.
 echo   Close each window to stop its service.
 echo.
 pause

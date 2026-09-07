@@ -323,6 +323,7 @@ CREATE TABLE `exam_record` (
   `create_time` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_session_user` (`session_id`, `user_id`),
   KEY `idx_session_id` (`session_id`),
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='考试-考试记录表';
@@ -339,6 +340,7 @@ CREATE TABLE `exam_answer` (
   `is_correct`  TINYINT                  DEFAULT NULL COMMENT '是否答对：1=对 0=错',
   `score`       DECIMAL(5,2)             DEFAULT NULL COMMENT '本题得分',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_record_question` (`record_id`, `question_id`),
   KEY `idx_record_id` (`record_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='考试-作答明细表';
 
@@ -357,6 +359,7 @@ CREATE TABLE `exam_score` (
   `archive_json` JSON                     DEFAULT NULL COMMENT '答卷快照（JSON）',
   `create_time`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '归档时间',
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_record_id` (`record_id`),
   KEY `idx_user_id` (`user_id`),
   KEY `idx_session_id` (`session_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='考试-成绩归档表';

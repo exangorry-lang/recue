@@ -17,6 +17,7 @@ import com.shrescue.system.mapper.SysUserRoleMapper;
 import com.shrescue.system.vo.LoginVO;
 import com.shrescue.system.vo.UserInfoVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +33,8 @@ public class AuthService {
 
     /** 初始密码占位符，首次登录时自动加密为 BCrypt */
     private static final String INIT_PASSWORD_PLACEHOLDER = "__CHANGE_ME_BCRYPT__";
-    private static final String INIT_PASSWORD = "admin123";
+    @Value("${shrescue.bootstrap.initial-password}")
+    private String initialPassword;
 
     @Autowired
     private SysUserMapper userMapper;
@@ -61,9 +63,9 @@ public class AuthService {
         // 密码校验（兼容初始占位符）
         boolean pwdOk;
         if (INIT_PASSWORD_PLACEHOLDER.equals(user.getPassword())) {
-            pwdOk = INIT_PASSWORD.equals(dto.getPassword());
+            pwdOk = initialPassword.equals(dto.getPassword());
             if (pwdOk) {
-                user.setPassword(encoder.encode(INIT_PASSWORD));
+                user.setPassword(encoder.encode(initialPassword));
                 userMapper.updateById(user);
             }
         } else {
@@ -87,6 +89,14 @@ public class AuthService {
                     dataScope = role.getDataScope();
                 }
             }
+        }
+
+        // PC 管理后台仅限超级管理员与部门负责人登录
+        if (dto.getDeviceType() != null && dto.getDeviceType() == 2
+                && !roleCodes.contains(Constants.ROLE_SUPER_ADMIN)
+                && !roleCodes.contains(Constants.ROLE_DEPT_LEADER)) {
+            saveLoginLog(user.getId(), user.getUsername(), ip, dto.getDeviceType(), 0, "无PC后台权限");
+            throw new BusinessException("PC管理后台仅限管理员和部门负责人登录");
         }
 
         LoginUser loginUser = new LoginUser();

@@ -2,8 +2,10 @@ package com.shrescue.system.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.shrescue.common.core.Result;
+import com.shrescue.common.constant.Constants;
 import com.shrescue.common.exception.BusinessException;
 import com.shrescue.framework.security.UserContext;
+import com.shrescue.framework.security.RequireRole;
 import com.shrescue.system.entity.SysDept;
 import com.shrescue.system.mapper.SysDeptMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,7 @@ public class SysDeptController {
         return Result.ok(list);
     }
 
+    @RequireRole(Constants.ROLE_SUPER_ADMIN)
     @PostMapping
     public Result<Void> create(@RequestBody SysDept dept) {
         dept.setId(null);
@@ -46,6 +49,7 @@ public class SysDeptController {
         return Result.ok();
     }
 
+    @RequireRole(Constants.ROLE_SUPER_ADMIN)
     @PutMapping
     public Result<Void> update(@RequestBody SysDept dept) {
         dept.setUpdateBy(UserContext.getUserId());
@@ -54,6 +58,7 @@ public class SysDeptController {
         return Result.ok();
     }
 
+    @RequireRole(Constants.ROLE_SUPER_ADMIN)
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         Long children = deptMapper.selectCount(

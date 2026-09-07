@@ -27,7 +27,7 @@ INSERT INTO `sys_user`
   (4, 2, 'wangqiang', '__CHANGE_ME_BCRYPT__', '王强', '13800000003', 2, 1, 1),
   (5, 3, 'zhaomin',   '__CHANGE_ME_BCRYPT__', '赵敏', '13800000004', 3, 1, 1),
   (6, 4, 'chenjing',  '__CHANGE_ME_BCRYPT__', '陈静', '13800000005', 4, 1, 1),
-  (7, 4, 'liuyang',   '__CHANGE_ME_BCRYPT__', '刘洋', '13800000006', 5, 1, 1);
+  (7, 2, 'liuyang',   '__CHANGE_ME_BCRYPT__', '刘洋', '13800000006', 5, 1, 1);
 
 -- 角色关联：张伟=部门负责人(2)，其余=救生员(3)
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES
@@ -93,12 +93,12 @@ INSERT INTO `exam_session`
 -- 6. 团队与任务
 -- ---------------------------------------------------------------------------
 INSERT INTO `team_group` (`id`, `name`, `dept_id`, `leader_id`, `status`, `remark`) VALUES
-  (1, '潜水一班训练组', 2, 3, 1, '一班日常训练'),
+  (1, '潜水一班训练组', 2, 7, 1, '一班日常训练'),
   (2, '潜水二班救援组', 3, 2, 1, '二班救援演练');
 
 INSERT INTO `team_group_member` (`group_id`, `user_id`, `role_name`) VALUES
-  (1, 3, '队员'), (1, 4, '队员'),
-  (2, 5, '队员'), (2, 6, '队员'), (2, 7, '队员');
+  (1, 3, '队员'), (1, 4, '队员'), (1, 7, '队员'),
+  (2, 5, '队员'), (2, 6, '队员');
 
 INSERT INTO `team_task`
   (`id`, `group_id`, `name`, `task_type`, `content`, `status`, `issuer_id`) VALUES

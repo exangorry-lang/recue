@@ -30,12 +30,13 @@
       <text class="section-title">等级晋升</text>
       <view class="promote-row">
         <text class="info-label">目标等级</text>
-        <picker :range="[2,3,4,5]" @change="onTargetChange">
+        <picker v-if="targetLevels.length" :range="targetLevels" @change="onTargetChange">
           <view class="promote-picker">{{ targetLevel }}级 ▾</view>
         </picker>
+        <text v-else class="promote-picker">已是最高等级</text>
       </view>
       <input class="reason-input" v-model="reason" placeholder="晋升依据（可选）" />
-      <button class="apply-btn" :loading="applying" @click="apply">提交晋升申请</button>
+      <button class="apply-btn" :class="{ disabled: !targetLevels.length }" :disabled="!targetLevels.length" :loading="applying" @click="apply">提交晋升申请</button>
     </view>
 
     <view class="card">
@@ -73,6 +74,14 @@ const user = ref(uni.getStorageSync('user') || {})
 const archive = ref(null)
 const targetLevel = ref(2)
 const reason = ref('')
+const targetLevels = computed(() => {
+  const current = user.value.level || 1
+  const list = []
+  for (let i = current + 1; i <= 5; i++) {
+    list.push(`${i}级`)
+  }
+  return list
+})
 const applying = ref(false)
 const weak = ref({})
 const pwdVisible = ref(false)
@@ -92,6 +101,10 @@ const load = async () => {
   archive.value = res.data
   const w = await getWeakPoints()
   weak.value = w.data
+  const current = user.value.level || 1
+  if (targetLevel.value <= current) {
+    targetLevel.value = Math.min(current + 1, 5)
+  }
 }
 
 const showChangePwd = () => {
@@ -113,10 +126,15 @@ const doChangePwd = async () => {
 }
 
 const onTargetChange = (e) => {
-  targetLevel.value = Number(e.detail.value) + 2
+  const current = user.value.level || 1
+  targetLevel.value = current + 1 + Number(e.detail.value)
 }
 
 const apply = async () => {
+  if (!targetLevels.value.length) {
+    uni.showToast({ title: '当前已是最高等级', icon: 'none' })
+    return
+  }
   applying.value = true
   try {
     await applyPromotion({ toLevel: targetLevel.value, reason: reason.value })
@@ -160,6 +178,7 @@ onShow(load)
 .promote-picker { font-size: 28rpx; color: #005A9C; font-weight: 600; }
 .reason-input { background: #F5F7FA; border-radius: 12rpx; padding: 20rpx; font-size: 28rpx; margin-top: 12rpx; }
 .apply-btn { background: #005A9C; color: #fff; border-radius: 12rpx; margin-top: 24rpx; }
+.apply-btn.disabled { background: #B8C2CC; }
 .apply-btn::after { border: none; }
 .logout-btn { background: #fff; color: #F53F3F; border-radius: 12rpx; margin: 40rpx 20rpx; }
 .logout-btn::after { border: none; }
